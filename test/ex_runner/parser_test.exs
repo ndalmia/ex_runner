@@ -46,7 +46,7 @@ defmodule ExRunner.ParserTest do
     assert Enum.sort(Map.keys(parsed_data)) == Enum.sort([:email, :password, :logins, :profile])
   end
 
-  test "parse with embeds" do
+  test "parse with embeds and few keys as strings" do
     data = %{
       email: "test@test.com",
       password: "test",
@@ -80,6 +80,16 @@ defmodule ExRunner.ParserTest do
         test: true
       }]
     }
+
+    data = Map.delete(data, :password)
+    data = Map.put(data, "password", "test")
+
+    profile = data.profile
+
+    profile = Map.delete(profile, :picture)
+    profile = Map.put(profile, "picture", "picture")
+
+    data = Map.put(data, :profile, profile)
 
     parsed_data = ExRunner.Parser.parse(ExRunner.ParserTest.User, data)
 

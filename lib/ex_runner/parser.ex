@@ -24,6 +24,6 @@ defmodule ExRunner.Parser do
   end
 
   defp field_value(data, field, _field_type) do
-    Map.get(data, field)
+    (Map.get(data, field) || Map.get(data, Atom.to_string(field)))
   end
 end
