@@ -4,7 +4,7 @@ defmodule ExRunner do
   @doc false
   defmacro __using__(_) do
     quote do
-      import ExRunner, only: [input: 1, output: 1]
+      import ExRunner, only: [input: 1, output: 1, embed_object: 2]
       import Ecto.Changeset
       import Ecto.Query
 
@@ -39,6 +39,19 @@ defmodule ExRunner do
   end
 
   @doc false
+  defmacro embed_object(name, schema) do
+    quote do
+      defmodule unquote(name) do
+        @moduledoc false
+        use Ecto.Schema
+
+        @primary_key false
+        embedded_schema unquote(schema)
+      end
+    end
+  end
+
+  @doc false
   defmacro __before_compile__(_) do
     quote do
       def run(params) when is_list(params) do
@@ -58,12 +71,8 @@ defmodule ExRunner do
       """
       def run(%{} = params) do
         input = ExRunner.Parser.parse(__MODULE__.Input, params)
-
-        changeset = %__MODULE__.Input{} |> cast(input, __MODULE__.Input.__schema__(:fields))
-
-        if changeset.valid? do
-          changeset = validate(changeset)
-        end
+        changeset = EctoMorph.generate_changeset(input, __MODULE__.Input)
+        changeset = Map.put(changeset, :params, input)
 
         if changeset.valid? do
           changeset = validate(changeset)
@@ -73,7 +82,7 @@ defmodule ExRunner do
               is_nil(response) -> {:ok, %{}}
               is_nil(Map.get(response, :valid?)) ->
                 output = ExRunner.Parser.parse(__MODULE__.Output, response)
-                changeset = %__MODULE__.Output{} |> cast(output, __MODULE__.Output.__schema__(:fields))
+                changeset = EctoMorph.generate_changeset(output, __MODULE__.Output)
                 if changeset.valid?, do: {:ok, output}, else: raise Ecto.InvalidChangesetError, changeset: changeset
               true -> {:error, response}
             end

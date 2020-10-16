@@ -41,7 +41,8 @@ defmodule ExRunner.MixProject do
   defp deps do
     [
       {:ecto, ">= 0.0.0"},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:ecto_morph, "~> 0.1.19"}
     ]
   end
 

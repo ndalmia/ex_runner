@@ -23,7 +23,7 @@ defmodule ExRunnerTest do
     end
   
     defp execute(changeset) do
-      params = changeset.changes
+      params = changeset.params
 
       case check_credentials(params) do
         true -> generate_session(params)
@@ -74,6 +74,13 @@ defmodule ExRunnerTest do
 
   test "run operation with correct credentials and only_session output" do
     assert CreateSession.run(email: "test@test.com", password: "test", output_type: "only_session") == {:ok, %{session_id: "870df8e8-3107-4487-8316-81e089b8c2cf"}}
+  end
+
+  test "run operation with correct credentials in form of map and only_session output" do
+    params = %{email: "test@test.com", password: "test", output_type: "only_session"}
+    params = Map.delete(params, :email)
+    params = Map.put(params, "email", "test@test.com")
+    assert CreateSession.run(params) == {:ok, %{session_id: "870df8e8-3107-4487-8316-81e089b8c2cf"}}
   end
 
   test "run! operation with correct credentials and only_session output" do

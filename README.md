@@ -71,7 +71,7 @@ defmodule CreateSession do
 end
 ```
 
-Validate function takes changeset as argument, `changes` of which contains the input passed and schema is of type input defined in step 2.
+Validate function takes changeset as argument, `params` of which contains the input passed and schema is of type input defined in step 2.
 
 For complex validations, read [Ecto Changeset](https://hexdocs.pm/ecto/Ecto.Changeset.html)
 
@@ -98,7 +98,7 @@ defmodule CreateSession do
   end
 
   defp execute(changeset) do
-    params = changeset.changes
+    params = changeset.params
 
     case (params.email == "test@test.com" and params.password == "test") do
       true -> %{session_id: "870df8e8-3107-4487-8316-81e089b8c2cf"}
@@ -108,7 +108,7 @@ defmodule CreateSession do
 end
 ```
 
-Execute function takes changeset as argument. Inputs / parameters can be found in `changeset.changes`.
+Execute function takes changeset as argument. Inputs / parameters can be found in `changeset.params`.
 To add an error, just call add_error of Ecto.Changeset. 
 
 In case of :ok, return the needed response of type output defined in step 4. 
@@ -159,11 +159,103 @@ In case of :error, return Ecto.Changeset.
 
 I recommend reading [How does the library work internally ?](#how-does-the-library-work-internally) to understand in detail.
 
+## Examples
+
+1 - Write an operation which creates the user session by taking email and password.
+
+```elixir
+defmodule CreateSession do
+  use ExRunner
+
+  input do
+    field :email, :string
+    field :password, :string
+  end
+
+  output do
+    field :session_id, Ecto.UUID
+  end
+
+  defp validate(changeset) do
+    changeset
+    |> validate_required([:email, :password])
+    |> validate_format(:email, ~r/^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,4}$/)
+    |> validate_length(:password, min: 4)
+  end
+
+  defp execute(changeset) do
+    params = changeset.params
+
+    case (params.email == "test@test.com" and params.password == "test") do
+      true -> %{session_id: "870df8e8-3107-4487-8316-81e089b8c2cf"}
+      false -> add_error(changeset, :credentials, "are invalid")
+    end
+  end
+end
+```
+
+2 - (Embed Example) - Write an operation which takes the user data, process and return them.
+
+```elixir
+defmodule ProcessUserData do
+  use ExRunner
+
+  embed_object Profile do
+    field :name, :string
+    field :picture, :string
+    field :mobile_numbers, {:array, :string}
+  end
+
+  embed_object Address do
+    field :address, :string
+    field :country, :string
+  end
+
+  input do
+    field :id, :integer
+    embeds_one :profile, ProcessUserData.Profile
+    embeds_many :addresses, ProcessUserData.Address
+  end
+
+  output do
+    field :id, :integer
+    embeds_one :profile, ProcessUserData.Profile
+    embeds_many :addresses, ProcessUserData.Address
+  end
+
+  defp validate(changeset) do
+    changeset
+    |> validate_required([:id])
+    |> EctoMorph.validate_nested_changeset([:profile], fn changeset ->
+      changeset
+      |> validate_required([:name, :picture])
+    end)
+    |> EctoMorph.validate_nested_changeset([:addresses], fn changeset ->
+      changeset
+      |> validate_required([:address, :country])
+      |> validate_inclusion(:country, ["US", "NL"])
+    end)
+  end
+
+  defp execute(changeset) do
+    changeset.params |> process_data
+  end
+
+  defp process_data(data) do
+    profile = data.profile
+    processed_picture = "processed_picture"
+    profile = Map.put(profile, :picture, processed_picture)
+    Map.put(data, :profile, profile)
+  end
+end
+```
+
+
 ## How does the library work internally ?
 
 `run ` can be called either with a keyword list or a map.
 
-1 - It first filters the input and permits only the ones defined in input schema. This is also true for embeds_one and embeds_many.
+1 - It first filters the input and permits only the ones defined in input schema. Even if string keys gets passed to run, it converts them to atoms. This is also true for embeds_one and embeds_many.
 
 2 - It checks the input against the field types defined in input. If invalid, it returns {:error, changeset}
 

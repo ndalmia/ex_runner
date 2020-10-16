@@ -11,7 +11,7 @@ defmodule ExRunner.Parser do
     end
   end
 
-  defp field_value(data, field, field_type) when is_tuple(field_type)  do
+  defp field_value(data, field, field_type) when is_tuple(field_type) and is_map(elem(field_type, tuple_size(field_type)-1))  do
     info = elem(field_type, tuple_size(field_type)-1)
     cond do
       info.cardinality == :one -> parse(info.related, Map.get(data, field))
