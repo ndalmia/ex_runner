@@ -9,7 +9,7 @@ It can be installed by adding `ex_runner` to your list of dependencies in `mix.e
 ```elixir
 def deps do
   [
-    {:ex_runner, "~> 0.1.0"}
+    {:ex_runner, "~> 0.2.0"}
   ]
 end
 ```
