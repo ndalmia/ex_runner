@@ -45,6 +45,10 @@ defmodule ExRunner do
         params |> Enum.into(%{}) |> run()
       end
 
+      def run(params) when is_nil(params) do
+        run(%{})
+      end
+
       def run(%_{} = params) do
         params |> Map.from_struct() |> run()
       end
